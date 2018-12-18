@@ -35,6 +35,10 @@ var _cliColor = require('cli-color');
 
 var _cliColor2 = _interopRequireDefault(_cliColor);
 
+var _moment = require('moment');
+
+var _moment2 = _interopRequireDefault(_moment);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -116,10 +120,13 @@ function run(_ref2) {
       deleteOriginal = _ref2.deleteOriginal,
       noColor = _ref2.noColor;
 
+  var startTime = Date.now();
   var queue = new _pQueue2.default({ concurrency: concurrency });
   var log = new Log({
     noColor: noColor
   });
+  var successCount = 0;
+  var failureCount = 0;
   var length = list.length;
 
   var _loop = function _loop(i, _length) {
@@ -130,26 +137,32 @@ function run(_ref2) {
 
     var item = {
       index: i,
-      msg: i + 1 + '/' + _length + ' ' + outFile
+      msg: '[' + (i + 1) + '/' + _length + '] ' + outFile
     };
     var output = _path2.default.join(outDir, outFile);
     var command = ffmpegCommand + ' ' + JSON.stringify(output) + ' -i ' + JSON.stringify(input) + ' ' + (ffmpegOptions || '');
 
     queue.add(function () {
       return new Promise(function (resolve, reject) {
+        item.startTime = Date.now();
         log.load(item);
         _mkdirp2.default.sync(outDir);
         try {
           _fs2.default.unlinkSync(output);
         } catch (e) {}
         (0, _child_process.exec)(command, function (err) {
+          item.endTime = Date.now();
           if (err) {
+            failureCount++;
             queue.clear();
             reject(err);
-          } else if (deleteOriginal) {
-            _fs2.default.unlink(input, resolve);
           } else {
-            resolve();
+            successCount++;
+            if (deleteOriginal) {
+              _fs2.default.unlink(input, resolve);
+            } else {
+              resolve();
+            }
           }
         });
       });
@@ -163,8 +176,9 @@ function run(_ref2) {
   for (var i = 0, _length = list.length; i < _length; i++) {
     _loop(i, _length);
   }
-  queue.onEmpty().then(function () {
+  queue.onIdle().then(function () {
     log.stop();
+    console.log('Total Time: ' + formatTime(Date.now() - startTime) + '; Success: ' + successCount + '; Failure: ' + failureCount);
   });
 }
 
@@ -205,6 +219,10 @@ function findFiles(file, opts) {
   return files;
 }
 
+function formatTime(time) {
+  return _moment2.default.utc(time).format('HH:mm:ss');
+}
+
 var Log = function () {
   function Log(_ref3) {
     var _this = this;
@@ -219,10 +237,11 @@ var Log = function () {
     var i = 0;
     this.render = function () {
       var frame = frames[i = ++i % frames.length];
+      var currentTime = Date.now();
       var list = _this.completedList.sort(function (a, b) {
         return a.index > b.index ? 1 : -1;
       }).map(function (item) {
-        var msg = '[' + (item.error ? '×' : '√') + '] ' + item.msg;
+        var msg = '[' + (item.error ? '×' : '√') + '] [' + formatTime(item.endTime - item.startTime) + '] ' + item.msg;
         if (!noColor) {
           if (item.error) {
             msg = _cliColor2.default.redBright(msg + '\n' + item.error.message);
@@ -232,7 +251,7 @@ var Log = function () {
         }
         return msg;
       }).concat(_this.progressingList.map(function (item) {
-        return '[' + frame + '] ' + item.msg;
+        return '[' + frame + '] [' + formatTime(currentTime - item.startTime) + '] ' + item.msg;
       }));
       (0, _logUpdate2.default)(list.join('\n'));
     };

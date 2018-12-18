@@ -7,8 +7,9 @@ import PQueue from 'p-queue'
 import yargs from 'yargs'
 import logUpdate from 'log-update'
 import clc from 'cli-color'
+import moment from 'moment'
 
-const frames = ['-', '\\', '|', '/'];
+const frames = ['-', '\\', '|', '/']
 
 function main ({
   _: [
@@ -60,10 +61,13 @@ function run ({
   deleteOriginal,
   noColor,
 }) {
+  const startTime = Date.now()
   const queue = new PQueue({concurrency})
   const log = new Log({
     noColor,
   })
+  let successCount = 0
+  let failureCount = 0
   const length = list.length
   for (let i=0, {length}=list; i<length; i++) {
     const {
@@ -73,7 +77,7 @@ function run ({
     } = list[i]
     const item = {
       index: i,
-      msg: `${i+1}/${length} ${outFile}`,
+      msg: `[${i+1}/${length}] ${outFile}`,
     }
     const output = path.join(outDir, outFile)
     const command = `${ffmpegCommand} ${
@@ -83,19 +87,25 @@ function run ({
     } ${ffmpegOptions || ''}`
 
     queue.add(() => new Promise((resolve, reject) => {
+      item.startTime = Date.now()
       log.load(item)
       mkdirp.sync(outDir)
       try {
         fs.unlinkSync(output)
       } catch (e) {}
       exec(command, err => {
+        item.endTime = Date.now()
         if (err) {
+          failureCount++
           queue.clear()
           reject(err)
-        } else if (deleteOriginal) {
-          fs.unlink(input, resolve)
         } else {
-          resolve()
+          successCount++
+          if (deleteOriginal) {
+            fs.unlink(input, resolve)
+          } else {
+            resolve()
+          }
         }
       })
     })).then(() => {
@@ -104,8 +114,11 @@ function run ({
       log.done(item, err)
     })
   }
-  queue.onEmpty().then(() => {
+  queue.onIdle().then(() => {
     log.stop()
+    console.log(`Total Time: ${
+      formatTime(Date.now() - startTime)
+    }; Success: ${successCount}; Failure: ${failureCount}`)
   })
 }
 
@@ -125,6 +138,10 @@ function findFiles (file, opts) {
   return files
 }
 
+function formatTime(time) {
+  return moment.utc(time).format('HH:mm:ss')
+}
+
 class Log {
   constructor ({
     noColor,
@@ -135,10 +152,13 @@ class Log {
     let i = 0
     this.render  = () => {
       const frame = frames[i = ++i % frames.length]
+      const currentTime = Date.now()
       const list = this.completedList
         .sort((a,b) => a.index > b.index ? 1 : -1)
         .map(item => {
-          let msg = `[${item.error ? '×' : '√'}] ${item.msg}`
+          let msg = `[${item.error ? '×' : '√'}] [${
+            formatTime(item.endTime - item.startTime)
+          }] ${item.msg}`
           if (!noColor) {
             if (item.error) {
               msg = clc.redBright(msg + '\n' + item.error.message)
@@ -148,7 +168,9 @@ class Log {
           }
           return msg
         })
-        .concat(this.progressingList.map(item => `[${frame}] ${item.msg}`))
+        .concat(this.progressingList.map(item => `[${frame}] [${
+          formatTime(currentTime - item.startTime)
+        }] ${item.msg}`))
       logUpdate(list.join('\n'))
     }
     this.timer = setInterval(this.render, 80)
