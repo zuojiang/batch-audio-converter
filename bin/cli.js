@@ -62,8 +62,10 @@ function main(_ref) {
       ffmpegCommand = _ref.ffmpegCommand,
       ffmpegOptions = _ref.ffmpegOptions,
       deleteOriginal = _ref.deleteOriginal,
-      noColor = _ref.noColor;
+      noColor = _ref.noColor,
+      absolutePath = _ref.absolutePath;
 
+  input = _path2.default.normalize(input);
   var files = findFiles(input, {
     filter: function filter(file) {
       return new RegExp('\\.' + inputExtname + '$', 'ig').test(file);
@@ -111,7 +113,8 @@ function main(_ref) {
     ffmpegCommand: ffmpegCommand,
     ffmpegOptions: ffmpegOptions,
     deleteOriginal: deleteOriginal,
-    noColor: noColor
+    noColor: noColor,
+    absolutePath: absolutePath
   });
 }
 
@@ -122,7 +125,8 @@ function run(_ref2) {
       ffmpegCommand = _ref2.ffmpegCommand,
       ffmpegOptions = _ref2.ffmpegOptions,
       deleteOriginal = _ref2.deleteOriginal,
-      noColor = _ref2.noColor;
+      noColor = _ref2.noColor,
+      absolutePath = _ref2.absolutePath;
 
   var startTime = Date.now();
   var queue = new _pQueue2.default({ concurrency: concurrency });
@@ -139,11 +143,11 @@ function run(_ref2) {
         outDir = _list$i.outDir,
         outFile = _list$i.outFile;
 
+    var output = _path2.default.join(outDir, outFile);
     var item = {
       index: i,
-      msg: '[' + (i + 1) + '/' + _length + '] ' + outFile
+      msg: '[' + (i + 1) + '/' + _length + '] ' + (absolutePath ? output : outFile)
     };
-    var output = _path2.default.join(outDir, outFile);
     var command = ffmpegCommand + ' ' + JSON.stringify(output) + ' -i ' + JSON.stringify(input) + ' ' + (ffmpegOptions || '');
 
     queue.add(function () {
@@ -305,7 +309,7 @@ main(_yargs2.default.usage('batch-audio-converter [options] [file|dir|.]').optio
     normalize: true
   },
   'concurrency': {
-    alias: 'c',
+    alias: 'p',
     describe: 'Concurrency limit',
     type: 'number',
     default: 3
@@ -321,25 +325,32 @@ main(_yargs2.default.usage('batch-audio-converter [options] [file|dir|.]').optio
     default: 'mp3'
   },
   'ffmpeg-command': {
-    alias: 'b',
+    alias: 'C',
     describe: 'The path of ffmpeg tool',
     normalize: true,
     default: 'ffmpeg'
   },
   'ffmpeg-options': {
     alias: 'O',
-    describe: 'The options of ffmpeg tool'
+    describe: 'The options of ffmpeg tool',
+    type: 'string'
   },
   'delete-original': {
-    alias: 'd',
+    alias: 'D',
     describe: 'Delete original files',
     type: 'boolean',
     default: false
   },
   'no-color': {
-    alias: 'C',
+    alias: 'g',
     describe: 'Do not print colored text',
     type: 'boolean',
     default: false
+  },
+  'absolute-path': {
+    alias: 'a',
+    describe: 'Print absolute path',
+    type: 'boolean',
+    default: false
   }
-}).version(false).strict(true).argv);
+}).version(false).strict(true).locale('en').argv);

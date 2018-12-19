@@ -27,7 +27,9 @@ function main ({
   ffmpegOptions,
   deleteOriginal,
   noColor,
+  absolutePath,
 }) {
+  input = path.normalize(input)
   const files = findFiles(input, {
     filter (file) {
       return new RegExp(`\\.${inputExtname}\$`, 'ig').test(file)
@@ -54,6 +56,7 @@ function main ({
     ffmpegOptions,
     deleteOriginal,
     noColor,
+    absolutePath,
   })
 }
 
@@ -64,6 +67,7 @@ function run ({
   ffmpegOptions,
   deleteOriginal,
   noColor,
+  absolutePath,
 }) {
   const startTime = Date.now()
   const queue = new PQueue({concurrency})
@@ -79,11 +83,11 @@ function run ({
       outDir,
       outFile
     } = list[i]
+    const output = path.join(outDir, outFile)
     const item = {
       index: i,
-      msg: `[${i+1}/${length}] ${outFile}`,
+      msg: `[${i+1}/${length}] ${absolutePath ? output : outFile}`,
     }
-    const output = path.join(outDir, outFile)
     const command = `${ffmpegCommand} ${
       JSON.stringify(output)
     } -i ${
@@ -214,7 +218,7 @@ main(yargs.usage('batch-audio-converter [options] [file|dir|.]')
     normalize: true,
   },
   'concurrency': {
-    alias: 'c',
+    alias: 'p',
     describe: 'Concurrency limit',
     type: 'number',
     default: 3,
@@ -230,7 +234,7 @@ main(yargs.usage('batch-audio-converter [options] [file|dir|.]')
     default: 'mp3'
   },
   'ffmpeg-command': {
-    alias: 'b',
+    alias: 'C',
     describe: 'The path of ffmpeg tool',
     normalize: true,
     default: 'ffmpeg',
@@ -238,20 +242,28 @@ main(yargs.usage('batch-audio-converter [options] [file|dir|.]')
   'ffmpeg-options': {
     alias: 'O',
     describe: 'The options of ffmpeg tool',
+    type: 'string',
   },
   'delete-original': {
-    alias: 'd',
+    alias: 'D',
     describe: 'Delete original files',
     type: 'boolean',
     default: false,
   },
   'no-color': {
-    alias: 'C',
+    alias: 'g',
     describe: 'Do not print colored text',
+    type: 'boolean',
+    default: false,
+  },
+  'absolute-path': {
+    alias: 'a',
+    describe: 'Print absolute path',
     type: 'boolean',
     default: false,
   }
 })
 .version(false)
 .strict(true)
+.locale('en')
 .argv)
