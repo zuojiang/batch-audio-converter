@@ -47,6 +47,10 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 var frames = ['-', '\\', '|', '/'];
 
+// function exec (command, callback) {
+//   setTimeout(callback, 2000)
+// }
+
 function main(_ref) {
   var _ref$_ = _slicedToArray(_ref._, 1),
       _ref$_$ = _ref$_[0],
@@ -178,6 +182,7 @@ function run(_ref2) {
   }
   queue.onIdle().then(function () {
     log.stop();
+    _logUpdate2.default.done();
     console.log('Total Time: ' + formatTime(Date.now() - startTime) + '; Success: ' + successCount + '; Failure: ' + failureCount);
   });
 }
@@ -231,37 +236,30 @@ var Log = function () {
 
     _classCallCheck(this, Log);
 
-    this.completedList = [];
-    this.progressingList = [];
+    this.noColor = noColor;
+    this.list = [];
 
     var i = 0;
     this.render = function () {
       var frame = frames[i = ++i % frames.length];
       var currentTime = Date.now();
-      var list = _this.completedList.sort(function (a, b) {
-        return a.index > b.index ? 1 : -1;
-      }).map(function (item) {
-        var msg = '[' + (item.error ? '×' : '√') + '] [' + formatTime(item.endTime - item.startTime) + '] ' + item.msg;
-        if (!noColor) {
-          if (item.error) {
-            msg = _cliColor2.default.redBright(msg + '\n' + item.error.message);
-          } else {
-            msg = _cliColor2.default.greenBright(msg);
-          }
-        }
-        return msg;
-      }).concat(_this.progressingList.map(function (item) {
+      (0, _logUpdate2.default)(_this.list.map(function (item) {
         return '[' + frame + '] [' + formatTime(currentTime - item.startTime) + '] ' + item.msg;
-      }));
-      (0, _logUpdate2.default)(list.join('\n'));
+      }).join('\n'));
     };
-    this.timer = setInterval(this.render, 80);
+
+    this.start = function () {
+      _this.render();
+      _this.timer = setInterval(_this.render, 80);
+    };
+
+    this.start();
   }
 
   _createClass(Log, [{
     key: 'load',
     value: function load(item) {
-      this.progressingList.push(item);
+      this.list.push(item);
       this.render();
     }
   }, {
@@ -269,15 +267,22 @@ var Log = function () {
     value: function done(item) {
       var error = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
-      for (var i = 0; i < this.progressingList.length; i++) {
-        if (this.progressingList[i] === item) {
-          this.progressingList.splice(i, 1);
+      for (var i = 0; i < this.list.length; i++) {
+        if (this.list[i] === item) {
+          this.list.splice(i, 1);
         }
       }
-      if (error) {
-        item.error = error;
+
+      var msg = '[' + (error ? '×' : '√') + '] [' + formatTime(item.endTime - item.startTime) + '] ' + item.msg;
+      if (!this.noColor) {
+        if (error) {
+          msg = _cliColor2.default.redBright(msg + '\n' + error.message);
+        } else {
+          msg = _cliColor2.default.greenBright(msg);
+        }
       }
-      this.completedList.push(item);
+      (0, _logUpdate2.default)(msg);
+      _logUpdate2.default.done();
       this.render();
     }
   }, {

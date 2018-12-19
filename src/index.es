@@ -11,6 +11,10 @@ import moment from 'moment'
 
 const frames = ['-', '\\', '|', '/']
 
+// function exec (command, callback) {
+//   setTimeout(callback, 2000)
+// }
+
 function main ({
   _: [
     input = process.cwd(),
@@ -116,6 +120,7 @@ function run ({
   }
   queue.onIdle().then(() => {
     log.stop()
+    logUpdate.done()
     console.log(`Total Time: ${
       formatTime(Date.now() - startTime)
     }; Success: ${successCount}; Failure: ${failureCount}`)
@@ -146,51 +151,50 @@ class Log {
   constructor ({
     noColor,
   }) {
-    this.completedList = []
-    this.progressingList = []
+    this.noColor = noColor
+    this.list = []
 
     let i = 0
-    this.render  = () => {
+    this.render = () => {
       const frame = frames[i = ++i % frames.length]
       const currentTime = Date.now()
-      const list = this.completedList
-        .sort((a,b) => a.index > b.index ? 1 : -1)
-        .map(item => {
-          let msg = `[${item.error ? '×' : '√'}] [${
-            formatTime(item.endTime - item.startTime)
-          }] ${item.msg}`
-          if (!noColor) {
-            if (item.error) {
-              msg = clc.redBright(msg + '\n' + item.error.message)
-            } else {
-              msg = clc.greenBright(msg)
-            }
-          }
-          return msg
-        })
-        .concat(this.progressingList.map(item => `[${frame}] [${
-          formatTime(currentTime - item.startTime)
-        }] ${item.msg}`))
-      logUpdate(list.join('\n'))
+      logUpdate(this.list.map(item => `[${frame}] [${
+        formatTime(currentTime - item.startTime)
+      }] ${item.msg}`).join('\n'))
     }
-    this.timer = setInterval(this.render, 80)
+
+    this.start = () => {
+      this.render()
+      this.timer = setInterval(this.render, 80)
+    }
+
+    this.start()
   }
 
   load (item) {
-    this.progressingList.push(item)
+    this.list.push(item)
     this.render()
   }
 
   done (item, error = null) {
-    for (let i=0; i<this.progressingList.length; i++) {
-      if (this.progressingList[i] === item) {
-        this.progressingList.splice(i, 1)
+    for (let i=0; i<this.list.length; i++) {
+      if (this.list[i] === item) {
+        this.list.splice(i, 1)
       }
     }
-    if (error) {
-      item.error = error
+
+    let msg = `[${error ? '×' : '√'}] [${
+      formatTime(item.endTime - item.startTime)
+    }] ${item.msg}`
+    if (!this.noColor) {
+      if (error) {
+        msg = clc.redBright(msg + '\n' + error.message)
+      } else {
+        msg = clc.greenBright(msg)
+      }
     }
-    this.completedList.push(item)
+    logUpdate(msg)
+    logUpdate.done()
     this.render()
   }
 

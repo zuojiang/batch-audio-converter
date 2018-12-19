@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Batch converting media files.",
   "scripts": {
-    "build": "babel -o ./bin/cli.js ./src/index.es"
+    "build": "babel -o ./bin/cli.js ./src/index.es",
+    "test": "babel-node ./src/index.es"
   },
   "bin": {
     "batch-audio-converter": "./bin/cli.js"
