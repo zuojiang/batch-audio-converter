@@ -12,7 +12,7 @@ npm i -g batch-audio-converter
 
 ### CLI
 
-```sh
+```
 batch-audio-converter [options] [file|dir|.]
 
 Options:
@@ -26,3 +26,7 @@ Options:
   --delete-original, -d  Delete original files        [boolean] [default: false]
   --no-color, -C         Do not print colored text    [boolean] [default: false]
 ```
+
+### License
+
+MIT
