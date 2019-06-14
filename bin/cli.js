@@ -63,7 +63,8 @@ function main(_ref) {
       ffmpegOptions = _ref.ffmpegOptions,
       deleteOriginal = _ref.deleteOriginal,
       noColor = _ref.noColor,
-      absolutePath = _ref.absolutePath;
+      absolutePath = _ref.absolutePath,
+      skipErrors = _ref.skipErrors;
 
   input = _path2.default.normalize(input);
   var files = findFiles(input, {
@@ -114,7 +115,8 @@ function main(_ref) {
     ffmpegOptions: ffmpegOptions,
     deleteOriginal: deleteOriginal,
     noColor: noColor,
-    absolutePath: absolutePath
+    absolutePath: absolutePath,
+    skipErrors: skipErrors
   });
 }
 
@@ -126,7 +128,8 @@ function run(_ref2) {
       ffmpegOptions = _ref2.ffmpegOptions,
       deleteOriginal = _ref2.deleteOriginal,
       noColor = _ref2.noColor,
-      absolutePath = _ref2.absolutePath;
+      absolutePath = _ref2.absolutePath,
+      skipErrors = _ref2.skipErrors;
 
   var startTime = Date.now();
   var queue = new _pQueue2.default({ concurrency: concurrency });
@@ -162,7 +165,9 @@ function run(_ref2) {
           item.endTime = Date.now();
           if (err) {
             failureCount++;
-            queue.clear();
+            if (!skipErrors) {
+              queue.clear();
+            }
             reject(err);
           } else {
             successCount++;
@@ -350,6 +355,12 @@ main(_yargs2.default.usage('batch-audio-converter [options] [file|dir|.]').optio
   'absolute-path': {
     alias: 'a',
     describe: 'Print absolute path',
+    type: 'boolean',
+    default: false
+  },
+  'skip-errors': {
+    alias: 's',
+    describe: 'Skip bad files',
     type: 'boolean',
     default: false
   }

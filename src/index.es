@@ -28,6 +28,7 @@ function main ({
   deleteOriginal,
   noColor,
   absolutePath,
+  skipErrors,
 }) {
   input = path.normalize(input)
   const files = findFiles(input, {
@@ -57,6 +58,7 @@ function main ({
     deleteOriginal,
     noColor,
     absolutePath,
+    skipErrors,
   })
 }
 
@@ -68,6 +70,7 @@ function run ({
   deleteOriginal,
   noColor,
   absolutePath,
+  skipErrors,
 }) {
   const startTime = Date.now()
   const queue = new PQueue({concurrency})
@@ -105,7 +108,9 @@ function run ({
         item.endTime = Date.now()
         if (err) {
           failureCount++
-          queue.clear()
+          if (!skipErrors) {
+            queue.clear()
+          }
           reject(err)
         } else {
           successCount++
@@ -259,6 +264,12 @@ main(yargs.usage('batch-audio-converter [options] [file|dir|.]')
   'absolute-path': {
     alias: 'a',
     describe: 'Print absolute path',
+    type: 'boolean',
+    default: false,
+  },
+  'skip-errors': {
+    alias: 's',
+    describe: 'Skip bad files',
     type: 'boolean',
     default: false,
   }

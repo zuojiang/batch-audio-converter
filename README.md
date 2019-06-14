@@ -26,6 +26,7 @@ Options:
   --delete-original, -D  Delete original files        [boolean] [default: false]
   --no-color, -g         Do not print colored text    [boolean] [default: false]
   --absolute-path, -a    Print absolute path          [boolean] [default: false]
+  --skip-errors, -s      Skip bad files               [boolean] [default: false]
 ```
 
 ### License

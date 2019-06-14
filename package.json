@@ -1,6 +1,6 @@
 {
   "name": "batch-audio-converter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Batch converting media files.",
   "scripts": {
     "build": "babel -o ./bin/cli.js ./src/index.es",
